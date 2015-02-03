@@ -4,6 +4,20 @@ from gi.repository import Gtk
 from gi.repository import GObject
 import os
 
+class Messages:
+    wdir = os.path.dirname(os.path.abspath(__file__))
+        
+    def get_first_unread(self):
+        return ('file://' + os.path.join(Messages.wdir, 'message.html'))
+    
+    def get_next(self):
+        return ('file://' + os.path.join(Messages.wdir, 'message.html'))
+
+
+
+
+
+
 
 class VentanaBoton(Gtk.Window):
 
@@ -23,11 +37,7 @@ class VentanaBoton(Gtk.Window):
         self.add(self.button)
 
     def on_button_clicked(self, widget):
-        visor = Visor().get()
-
-
-    def get(self):
-        return self
+        visor = Visor()
 
 
 
@@ -35,7 +45,7 @@ class VentanaBoton(Gtk.Window):
 class Visor(Gtk.Window):
  
     def __init__(self):
-        GObject.threads_init()
+        #GObject.threads_init()
         Gtk.Window.__init__(self, title="Visor de novedades Ceibal")
 
         # Decorators
@@ -44,22 +54,12 @@ class Visor(Gtk.Window):
         self.resize(400,300)
         self.move(900,20)
         self.set_accept_focus(False)
-        
+        self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        self.add(self.box) 
         self.hbar = HeaderBar(self)
         self.wviewer = WebViewer(self)
-
-    def get(self):
         self.show_all()
-        return self
 
-class Messages:
-    wdir = os.path.dirname(os.path.abspath(__file__))
-        
-    def get_first_unread(self):
-        return ('file://' + os.path.join(Messages.wdir, 'message.html'))
-    
-    def get_next(self):
-        return ('file://' + os.path.join(Messages.wdir, 'message.html'))
 
 
 class WebViewer:
@@ -68,30 +68,47 @@ class WebViewer:
         msg = Messages()
         view = WebKit.WebView()
         view.open(msg.get_first_unread())
-        win.add(view)
+        win.box.pack_start(view, True, True, 0)
 
 
 class HeaderBar:
     
     def __init__(self, win):
-        self.box = Gtk.Box(spacing=6)
-        win.add(self.box)
+        tb = Gtk.Toolbar()
+        tb.set_style(Gtk.ToolbarStyle.ICONS)
+        self.win = win
+        self.win.box.pack_start(tb, False, False, 0)
+        
+        self.back = Gtk.ToolButton(Gtk.STOCK_GO_BACK, label="Anterior")
+        self.back.connect("clicked", self.on_back_clicked)
+        
+        self.next = Gtk.ToolButton(Gtk.STOCK_GO_FORWARD,label="Siguiente")
+        self.next.connect("clicked", self.on_next_clicked)
+        
+        self.close = Gtk.ToolButton(Gtk.STOCK_CLOSE,label="Cerrar")
+        self.close.connect("clicked", self.on_close_clicked)
+        
+        sep = Gtk.SeparatorToolItem()
 
-        self.button1 = Gtk.Button(label="Hello")
-        self.button1.connect("clicked", self.on_button1_clicked)
-        self.box.pack_start(self.button1, True, True, 0)
+        sep.props.draw = False
+        sep.set_expand(True)
 
-        self.button2 = Gtk.Button(label="Goodbye")
-        self.button2.connect("clicked", self.on_button2_clicked)
-        self.box.pack_start(self.button2, True, True, 0)
+        tb.insert(self.back, 0)
+        tb.insert(self.next, 1)
+        tb.insert(sep, 2)
+        tb.insert(self.close, 3)
 
-    def on_button1_clicked(self, widget):
-        print("Hello")
 
-    def on_button2_clicked(self, widget):
+    def on_next_clicked(self, widget):
+        print("Siguiente")
+
+    def on_back_clicked(self, widget):
+        print("Atras")            
+    
+    def on_close_clicked(self, widget):
         print("Goodbye")            
+        self.win.destroy() 
 
 
-
-win = VentanaBoton().get()
+win = VentanaBoton()
 Gtk.main()
