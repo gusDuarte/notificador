@@ -10,7 +10,7 @@ import os
 
 
 def get_ceibal_root():
-    return os.path.join('/home/gustavo/devel/notification/ceibal/notificador-ceibal-notifier/')
+    return os.path.dirname(os.path.abspath(__file__))
 
 
 def get_updates_root():

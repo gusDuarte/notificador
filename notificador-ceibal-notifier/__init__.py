@@ -1,2 +1,5 @@
 import sys
-sys.path.append("/home/gustavo/devel/notification/ceibal/notificador-ceibal-notifier")
+import os
+
+curr = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(curr)
