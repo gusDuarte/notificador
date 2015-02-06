@@ -99,14 +99,15 @@ class Messages:
     def get_prev_unread(self, message):
         messages = filter(self._date_valid,Messages.db.get_messages({}))
         messages_unread = filter(self._check_notification_is_unread, messages)
+
         msg_prev = None 
         for msg in messages_unread:
             if msg['id'] < message['id']:
                 msg_prev = msg
             else:
                 return msg_prev
-        else:
-            return None 
+ 
+        return msg_prev 
        
    
     def get_all(self):
@@ -165,8 +166,8 @@ class Visor(Gtk.Window):
         self.set_accept_focus(False)
         self.box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         self.add(self.box) 
-        self.hbar = HeaderBar(self)
-        self.wviewer = WebViewer(self)
+        self.tool_bar    = ToolBar(self)
+        self.html_viewer = WebViewer(self)
         self.show_all()
 
 
@@ -178,10 +179,11 @@ class WebViewer:
         self.view = WebKit.WebView()
         self.win.box.pack_start(self.view, True, True, 0)
         self.message_mgr = Messages()
+        self.current_msg = None
         self.show_msg('first')
-
          
     def show_msg (self, pos):
+        
         if pos == 'next':
             current_msg = self.message_mgr.get_next_unread(self.current_msg)
         elif pos == 'prev':
@@ -193,18 +195,19 @@ class WebViewer:
 
         if current_msg is not None:
             self.current_msg = current_msg
+            self.win.tool_bar.clean_read_check()
             self.view.load_string(self.current_msg['html'], 'text/html', 'UTF-8','/')
     
     def set_msg_read(self):
         self.message_mgr.set_read(self.current_msg)
 
-class HeaderBar:
+class ToolBar(Gtk.Toolbar):
     
     def __init__(self, win):
-        tb = Gtk.Toolbar()
-        tb.set_style(Gtk.ToolbarStyle.ICONS)
+        Gtk.Toolbar.__init__(self)
+        self.set_style(Gtk.ToolbarStyle.ICONS)
         self.win = win
-        self.win.box.pack_start(tb, False, False, 0)
+        self.win.box.pack_start(self, False, False, 0)
         
         self.back = Gtk.ToolButton(Gtk.STOCK_GO_BACK, label="Anterior")
         self.back.connect("clicked", self.on_back_clicked)
@@ -215,34 +218,37 @@ class HeaderBar:
         self.close = Gtk.ToolButton(Gtk.STOCK_CLOSE,label="Cerrar")
         self.close.connect("clicked", self.on_close_clicked)
         
-        self.check = Gtk.ToolItem ()
-        chk = Gtk.CheckButton ()
-        chk.set_label ('Leido')
-        chk.connect ('toggled' , self.toggled)
-        self.check.add (chk)
+        check_item = Gtk.ToolItem ()
+        self.check_btn = Gtk.CheckButton ()
+        self.check_btn.set_label ('Leido')
+        self.check_btn.connect ('toggled' , self.toggled)
+        check_item.add (self.check_btn)
 
         sep = Gtk.SeparatorToolItem()
 
         sep.props.draw = False
         sep.set_expand(True)
 
-        tb.insert(self.back, 0)
-        tb.insert(self.next, 1)
-        tb.insert(sep, 2)
-        tb.insert(self.check,3)
-        tb.insert(self.close, 4)
+        self.insert(self.back, 0)
+        self.insert(self.next, 1)
+        self.insert(sep, 2)
+        self.insert(check_item,3)
+        self.insert(self.close, 4)
+
+    def clean_read_check(self):
+        self.check_btn.set_active(False)
 
     def toggled (self, obj):
-         print 'toggled %s' % obj.get_active ()
-         self.win.wviewer.set_msg_read()
+         if obj.get_active ():
+            self.win.html_viewer.set_msg_read()
  
     def on_next_clicked(self, widget):
         print("Siguiente")
-        self.win.wviewer.show_msg('next')
+        self.win.html_viewer.show_msg('next')
 
     def on_back_clicked(self, widget):
         print("Atras")            
-        self.win.wviewer.show_msg('prev')
+        self.win.html_viewer.show_msg('prev')
     
     def on_close_clicked(self, widget):
         print("Goodbye")            
