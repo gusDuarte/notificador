@@ -15,29 +15,52 @@ from ceibal.notifier.constantes import READ_FILE,DB_FILE,IMAGEN_NOTOFY,BTN_GENER
 
 
 class Messages:
-    notif_read = None
     db = None
-    fp = None
 
     def __init__(self):
         if Messages.db is None:
             db_filename = os.path.join(env.get_data_root(),DB_FILE)        
             Messages.db = Db(db_filename)
 
-        self._init_notif_read()
 
-    def _init_notif_read (self):
-        if Messages.notif_read is None:
-            file_name = os.path.join(env.get_data_root(),READ_FILE)    
-            Messages.fp = open(file_name, "w+") 
-            try:
-                Messages.notif_read = json.load(fp)
-            except:
-                Messages.notif_read = {}
-                for msg in self.get_all():
-                    Messages.notif_read[msg['id']] = 'unread' 
-                json.dump(Messages.notif_read, Messages.fp)
-                Messages.fp.flush()
+    def _save_notification_read(self, id):
+        file_name = os.path.join(env.get_data_root(),READ_FILE)    
+        try:
+            fp = open(file_name, "r")
+            notif_read_record = json.load(fp)
+            fp.close()
+            
+            open(file_name,'w').close()
+            fp = open(file_name,'r+')
+        except:
+            fp = open(file_name, "w+")
+            notif_read_record = {}
+        
+        notif_read_record[id] = 'read'
+        json.dump(notif_read_record, fp)
+        fp.flush()
+        fp.close()
+        
+
+    def _check_notification_is_unread (self, message):
+        id = str (message['id'])
+        
+        file_name = os.path.join(env.get_data_root(),READ_FILE)    
+        try:
+            fp = open(file_name, "r") 
+            notif_read_record = json.load(fp)
+        except:
+            print "Exception, no pudo abrir o algo ...."
+            return True
+          
+        if fp is not None:
+          fp.close()
+
+        if id in notif_read_record:
+            return notif_read_record[id] == 'unread'
+        else:
+            print "No encontro el id en el json...." + id
+            return True
 
     def _date_valid(self,message):
         '''
@@ -51,13 +74,25 @@ class Messages:
         today = datetime.datetime.strftime(datetime.date.today(), "%Y-%m-%d")
         return today <= expires
 
-    def _unread(self, message):
-        id = message['id']
-        return Messages.notif_read[id] != 'read'
 
     def get_first_unread(self, args={}):
         messages = filter(self._date_valid,Messages.db.get_messages(args))
-        return filter(self._unread, messages)[0]['html']
+        messages_unread = filter(self._check_notification_is_unread, messages)
+        if len(messages_unread) > 0:
+            return messages_unread[0]
+        else:
+            return None 
+    
+    def get_next_unread(self, message):
+        messages = filter(self._date_valid,Messages.db.get_messages({}))
+        messages_unread = filter(self._check_notification_is_unread, messages)
+        
+        for msg in messages_unread:
+            if msg['id'] > message['id']:
+                return msg
+        else:
+            return None 
+       
    
     def get_all(self):
         return Messages.db.get_messages({})
@@ -67,8 +102,7 @@ class Messages:
         return ('file://' + os.path.join(wdir, 'message.html'))
     
     def set_read(self, message):
-        Messages.notif_read[message['id']] = 'read'
-        Messages.fp.flush()
+        self._save_notification_read(message['id'])
 
 
 
@@ -78,17 +112,21 @@ class VentanaBoton(Gtk.Window):
 
     def __init__(self):
         Gtk.Window.__init__(self, title="Notificador de novedades Ceibal")
-        self.create_button()
+        self.message_mgr = Messages()
+        if self.message_mgr.get_first_unread() is None:
+            return
     
-        #self.set_decorated(False)
+        self.set_decorated(False)
         self.move(950,20)
         self.set_accept_focus(False)
         self.connect("delete-event", Gtk.main_quit)
+        self.create_button()
         self.show_all()
         Gtk.main()
 
+
     def create_button(self):
-        self.button = Gtk.Button(label="Novedades")
+        self.button = Gtk.Button(label="Novedades Ceibal")
         self.button.connect("clicked", self.on_button_clicked)
         self.add(self.button)
 
@@ -121,12 +159,23 @@ class Visor(Gtk.Window):
 class WebViewer:
 
     def __init__ (self,win):
-        msg = Messages()
-
-        view = WebKit.WebView()
-        view.load_string(msg.get_first_unread(), 'text/html', 'UTF-8','/')
-        win.box.pack_start(view, True, True, 0)
-
+        self.win = win
+        self.view = WebKit.WebView()
+        self.win.box.pack_start(self.view, True, True, 0)
+        self.message_mgr = Messages()
+        self.current_msg = self.message_mgr.get_first_unread()
+        
+        if self.current_msg is not None:
+            self.view.load_string(self.current_msg['html'], 'text/html', 'UTF-8','/')
+    
+    def show_next_unread(self,):
+        current_msg = self.message_mgr.get_next_unread(self.current_msg)
+        if current_msg is not None:
+            self.current_msg = current_msg
+            self.view.load_string(self.current_msg['html'], 'text/html', 'UTF-8','/')
+    
+    def set_msg_read(self):
+        self.message_mgr.set_read(self.current_msg)
 
 class HeaderBar:
     
@@ -164,9 +213,11 @@ class HeaderBar:
 
     def toggled (self, obj):
          print 'toggled %s' % obj.get_active ()
-    
+         self.win.wviewer.set_msg_read()
+ 
     def on_next_clicked(self, widget):
         print("Siguiente")
+        self.win.wviewer.show_next_unread()
 
     def on_back_clicked(self, widget):
         print("Atras")            
@@ -174,7 +225,8 @@ class HeaderBar:
     def on_close_clicked(self, widget):
         print("Goodbye")            
         self.win.destroy() 
+        message_mgr = Messages()
+        if message_mgr.get_first_unread() is None:
+            Gtk.main_quit()
 
 
-win = VentanaBoton()
-Gtk.main()
