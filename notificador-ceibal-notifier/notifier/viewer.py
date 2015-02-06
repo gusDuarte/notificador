@@ -26,13 +26,16 @@ class Messages:
     def _save_notification_read(self, id):
         file_name = os.path.join(env.get_data_root(),READ_FILE)    
         try:
+            # Cargo el diccionario desde el archivo json
             fp = open(file_name, "r")
             notif_read_record = json.load(fp)
             fp.close()
             
+            # Borro el archivo json
             open(file_name,'w').close()
             fp = open(file_name,'r+')
         except:
+            # El archivo json no existe, lo creo.
             fp = open(file_name, "w+")
             notif_read_record = {}
         
@@ -50,7 +53,7 @@ class Messages:
             fp = open(file_name, "r") 
             notif_read_record = json.load(fp)
         except:
-            print "Exception, no pudo abrir o algo ...."
+            print "No existe el archivo de registro ...."
             return True
           
         if fp is not None:
@@ -59,7 +62,7 @@ class Messages:
         if id in notif_read_record:
             return notif_read_record[id] == 'unread'
         else:
-            print "No encontro el id en el json...." + id
+            print "No encuentro id en el registro ..." + id
             return True
 
     def _date_valid(self,message):
@@ -90,6 +93,18 @@ class Messages:
         for msg in messages_unread:
             if msg['id'] > message['id']:
                 return msg
+        else:
+            return None 
+    
+    def get_prev_unread(self, message):
+        messages = filter(self._date_valid,Messages.db.get_messages({}))
+        messages_unread = filter(self._check_notification_is_unread, messages)
+        msg_prev = None 
+        for msg in messages_unread:
+            if msg['id'] < message['id']:
+                msg_prev = msg
+            else:
+                return msg_prev
         else:
             return None 
        
@@ -163,13 +178,19 @@ class WebViewer:
         self.view = WebKit.WebView()
         self.win.box.pack_start(self.view, True, True, 0)
         self.message_mgr = Messages()
-        self.current_msg = self.message_mgr.get_first_unread()
-        
-        if self.current_msg is not None:
-            self.view.load_string(self.current_msg['html'], 'text/html', 'UTF-8','/')
-    
-    def show_next_unread(self,):
-        current_msg = self.message_mgr.get_next_unread(self.current_msg)
+        self.show_msg('first')
+
+         
+    def show_msg (self, pos):
+        if pos == 'next':
+            current_msg = self.message_mgr.get_next_unread(self.current_msg)
+        elif pos == 'prev':
+            current_msg = self.message_mgr.get_prev_unread(self.current_msg)
+        elif pos == 'first':
+            current_msg = self.message_mgr.get_first_unread()
+        else:
+            current_msg = None
+
         if current_msg is not None:
             self.current_msg = current_msg
             self.view.load_string(self.current_msg['html'], 'text/html', 'UTF-8','/')
@@ -217,10 +238,11 @@ class HeaderBar:
  
     def on_next_clicked(self, widget):
         print("Siguiente")
-        self.win.wviewer.show_next_unread()
+        self.win.wviewer.show_msg('next')
 
     def on_back_clicked(self, widget):
         print("Atras")            
+        self.win.wviewer.show_msg('prev')
     
     def on_close_clicked(self, widget):
         print("Goodbye")            
