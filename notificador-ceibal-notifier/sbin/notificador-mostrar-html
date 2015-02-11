@@ -7,7 +7,6 @@
 #----------------------------------------------------------------------
 import sys
 import os
-from gi.repository import Gtk
 
 (prev,curr) = os.path.split(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(prev)
@@ -17,4 +16,3 @@ from ceibal.notifier.viewer import *
 
 
 win = VentanaBoton()
-#Gtk.main()
