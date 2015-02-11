@@ -8,11 +8,17 @@
 import sys
 import os
 
-(prev,curr) = os.path.split(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(prev)
+try:
+     import ceibal
+except:
+    (prev,curr) = os.path.split(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(prev)
 
-from ceibal.notifier.viewer import *
-
-
+try:
+    import gtk
+    import webkit
+    from ceibal.notifier.viewer_gtk2 import *
+except:
+    from ceibal.notifier.viewer_gtk3 import *
 
 win = VentanaBoton()
