@@ -128,6 +128,10 @@ class VentanaBoton(gtk.Window):
 
     def __init__(self):
         gtk.Window.__init__(self)
+
+        #Evita que aparezca en la lista de ventanas
+        self.set_skip_taskbar_hint(True)
+
         self.message_mgr = Messages()
         if self.message_mgr.get_first_unread() is None:
             return
@@ -158,6 +162,9 @@ class Visor(gtk.Window):
         #GObject.threads_init()
         gtk.Window.__init__(self)
 
+        #Evita que aparezca en la lista de ventanas
+        self.set_skip_taskbar_hint(True)
+        
         # Decorators
         self.set_decorated(False)
 
