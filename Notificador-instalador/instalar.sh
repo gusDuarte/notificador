@@ -98,6 +98,31 @@ if [[ -d /home/olpc/Activities/CeibalNotifica.activity ]]; then
 	chmod 755 /home/olpc/Activities/CeibalNotifica.activity/store.py
 fi
 echo "*"
+echo "*"
+echo "* DETECTO EL NOMBRE DE USUARIO ..."
+echo "*"
+if id -u "ceibal" >/dev/null 2>&1; then
+        usuario=ceibal
+elif id -u "estudiante" >/dev/null 2>&1;then
+        usuario=estudiante
+elif id -u "olpc" >/dev/null 2>&1;then
+        usuario=olpc
+else 
+    echo "Nombre de usuario desconocido"
+fi
+echo "*"
+echo "*"
+echo "* AGREGO el notificador-mostrar-html AL ARRANQUE ..."
+echo "*"
+if [[ -d /home/$usuario/.config/autostart ]]; then
+    cp notificador-mostrar.desktop /home/$usuario/.config/autostart
+    chown $usuario:$usuario /home/$usuario/.config/autostart/notificador-mostrar.desktop
+else
+    mkdir /home/$usuario/.config/autostart
+    cp notificador-mostrar.desktop /home/$usuario/.config/autostart
+    chown $usuario:$usuario /home/$usuario/.config/autostart/notificador-mostrar.desktop
+fi
+
 echo "*****************************************************************************"
 echo "*************************  TERMINO LA INSTALACION  **************************"
 echo "*****************************************************************************"
