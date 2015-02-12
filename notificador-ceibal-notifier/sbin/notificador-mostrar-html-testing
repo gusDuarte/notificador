@@ -7,6 +7,13 @@
 #----------------------------------------------------------------------
 import sys
 import os
+    
+(prev,curr) = os.path.split(os.path.dirname(os.path.abspath(__file__)))
+
+# Si estoy en ambiente de testing, importo ceibal desde alli
+if os.path.isfile(os.path.join(prev, '/testing_env')):
+    sys.path.append(prev)
+    
 import ceibal
 
 try:
