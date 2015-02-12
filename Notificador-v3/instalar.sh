@@ -1,7 +1,9 @@
 #!/bin/sh
+
 echo "*****************************************************************************"
 echo "********************* INSTALADOR DEL NOTIFICADOR ****************************"
 echo "*****************************************************************************"
+
 if [[ $UID -ne 0 ]]; then
 echo "* - El script debe ser ejecutado como root." >&2
 exit 1;
@@ -40,6 +42,7 @@ else
     	else
     		echo
     		echo "* - No se pudieron instalar los archivos del notifier"
+        fi
 	fi
 fi
 echo "*"
@@ -72,6 +75,7 @@ echo "*"
 echo "* VERIFICANDO E INSTALANDO LOS ARCHIVOS DE EJECUCION ..."
 cp sbin/* /usr/sbin/
 chmod 755 /usr/sbin/notificador-mostrar
+chmod 755 /usr/sbin/notificador-mostrar-html
 chmod 755 /usr/sbin/notificador-obtener
 echo "*"
 echo "*"
@@ -97,3 +101,4 @@ echo "*"
 echo "*****************************************************************************"
 echo "*************************  TERMINO LA INSTALACION  **************************"
 echo "*****************************************************************************"
+
